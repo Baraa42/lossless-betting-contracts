@@ -16,37 +16,59 @@ contract BenqiLossless is Lossless  {
 
     address public token;
     address public winner;
+    uint256 public sponsorDeposit;
     BetSide public winningSide;
-    /// Benqi Lending pool to deposit tokens
-    //ILendingPool public lendingPool;
-    enum BetSide {OPEN, HOME, AWAY}
+    /// Aave Lending pool to deposit tokens
+    ILendingPool public lendingPool;
+    enum BetSide {OPEN, HOME, DRAW, AWAY}
     
     
     
-  
-     constructor(address _token, address _lendingPoolAddress, uint256 _matchExpiryBlock) public  Lossless(_matchExpiryBlock){
+    modifier correctBet(BetSide betSide) {
+        require(betSide == BetSide.HOME || betSide == BetSide.AWAY|| betSide == BetSide.DRAW, 'invalid argument for bestide');
+        _;
+    }
+    constructor(address _token, address _lendingPoolAddress, uint256 _matchStartBlock, uint256 _matchFinishBlock) public  Lossless(_matchStartBlock,_matchFinishBlock ){
         status = MatchStatus.OPEN;
         token = _token;
-        //lendingPool = ILendingPool(_lendingPoolAddress);
+        lendingPool = ILendingPool(_lendingPoolAddress);
         winningSide = BetSide.OPEN;
         winner = address(0);
 
 
     }
 
-    function placeBet(BetSide betSide, uint256 amount) public payable isOpen() {
+    function sponsor(uint256 amount) public payable isOpen() {
         require(amount > 0, 'amount must be positif');
-        require(betSide == BetSide.HOME || betSide ==BetSide.AWAY, 'invalid argument for bestide');
+        // uint256 allowance = IERC20(token).allowance(msg.sender, address(this));
+        // require(allowance >= amount, "Check the token allowance");
+        // IERC20(token).transferFrom(msg.sender, address(this), amount);
+        // IERC20(token).approve(address(lendingPool), amount);
+        lendingPool.deposit(token, amount, address(this),0);
+        totalDeposits += amount;
+        sponsorDeposit += amount;
+        playerBalance[msg.sender] += amount;
 
+
+    }
+    function placeBet(BetSide betSide, uint256 amount) public payable isOpen() correctBet(betSide) {
+        require(amount > 0, 'amount must be positif');
         if (betSide==BetSide.HOME) {
             placeHomeBet(amount);
         } else if (betSide==BetSide.AWAY) {
             placeAwayBet(amount);
-        } 
+        } else if (betSide==BetSide.DRAW) {
+            placeDrawBet(amount);
+        }
+        
+        // placing money in aave logique
+        // uint256 allowance = IERC20(token).allowance(msg.sender, address(this));
+        // require(allowance >= amount, "Check the token allowance");
+        // IERC20(token).transferFrom(msg.sender, address(this), amount);
+        // IERC20(token).approve(address(lendingPool), amount);
+        // lendingPool.deposit(token, amount, address(this),0);
         totalDeposits += amount;
         playerBalance[msg.sender] += amount;
-        // placing money in benqi logique
-        
 
     }
     
@@ -56,15 +78,15 @@ contract BenqiLossless is Lossless  {
         require(playerBalance[msg.sender]>0 , 'balance is zero');
         uint256 amount = playerBalance[msg.sender];
         playerBalance[msg.sender] = 0;
-        //IERC20(token).transfer(msg.sender, amount);
+        // IERC20(token).transfer(msg.sender, amount);
 
     }
 
-    function setMatchWinnerAndWithdrawFromPool(BetSide _winningSide) public isFinished() onlyOwner() {
-        require(_winningSide == BetSide.HOME || _winningSide == BetSide.AWAY, 'Wrong input for winner');
+    function setMatchWinnerAndWithdrawFromPool(BetSide _winningSide) public  onlyOwner() correctBet(_winningSide) {
+        require(status == MatchStatus.OPEN, 'Cant settle this match');
         status = MatchStatus.PAID;
         winningSide = _winningSide;
-        //lendingPool.withdraw(token, type(uint).max, address(this));
+        // lendingPool.withdraw(token, type(uint).max, address(this));
         findWinner();
         payoutWinner(); 
 
@@ -75,12 +97,14 @@ contract BenqiLossless is Lossless  {
             winner = findHomeWinner();
         } else if (winningSide == BetSide.AWAY) {
             winner = findAwayWinner();
+        } else if (winningSide == BetSide.DRAW) {
+            winner = findDrawWinner();
         }
     }
 
     function payoutWinner() internal  {
-        //uint256 winnerPayout = IERC20(token).balanceOf(address(this)) - totalDeposits;
-        //playerBalance[winner] += winnerPayout;
+        uint256 winnerPayout = IERC20(token).balanceOf(address(this)) - totalDeposits;
+        playerBalance[winner] += winnerPayout;
     }
    
   

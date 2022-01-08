@@ -11,15 +11,19 @@ contract AaveLossless is Lossless  {
 
     address public token;
     address public winner;
+    uint256 public sponsorDeposit;
     BetSide public winningSide;
     /// Aave Lending pool to deposit tokens
     ILendingPool public lendingPool;
-    enum BetSide {OPEN, HOME, AWAY}
+    enum BetSide {OPEN, HOME, DRAW, AWAY}
     
     
     
-  
-     constructor(address _token, address _lendingPoolAddress, uint256 _matchExpiryBlock) public  Lossless(_matchExpiryBlock){
+    modifier correctBet(BetSide betSide) {
+        require(betSide == BetSide.HOME || betSide == BetSide.AWAY|| betSide == BetSide.DRAW, 'invalid argument for bestide');
+        _;
+    }
+    constructor(address _token, address _lendingPoolAddress, uint256 _matchStartBlock, uint256 _matchFinishBlock) public  Lossless(_matchStartBlock,_matchFinishBlock ){
         status = MatchStatus.OPEN;
         token = _token;
         lendingPool = ILendingPool(_lendingPoolAddress);
@@ -29,23 +33,37 @@ contract AaveLossless is Lossless  {
 
     }
 
-    function placeBet(BetSide betSide, uint256 amount) public payable isOpen() {
+    function sponsor(uint256 amount) public payable isOpen() {
         require(amount > 0, 'amount must be positif');
-        require(betSide == BetSide.HOME || betSide == BetSide.AWAY, 'invalid argument for bestide');
+        uint256 allowance = IERC20(token).allowance(msg.sender, address(this));
+        require(allowance >= amount, "Check the token allowance");
+        IERC20(token).transferFrom(msg.sender, address(this), amount);
+        IERC20(token).approve(address(lendingPool), amount);
+        lendingPool.deposit(token, amount, address(this),0);
+        totalDeposits += amount;
+        sponsorDeposit += amount;
+        playerBalance[msg.sender] += amount;
 
+
+    }
+    function placeBet(BetSide betSide, uint256 amount) public payable isOpen() correctBet(betSide) {
+        require(amount > 0, 'amount must be positif');
         if (betSide==BetSide.HOME) {
             placeHomeBet(amount);
         } else if (betSide==BetSide.AWAY) {
             placeAwayBet(amount);
-        } 
-        totalDeposits += amount;
-        playerBalance[msg.sender] += amount;
+        } else if (betSide==BetSide.DRAW) {
+            placeDrawBet(amount);
+        }
+        
         // placing money in aave logique
         uint256 allowance = IERC20(token).allowance(msg.sender, address(this));
         require(allowance >= amount, "Check the token allowance");
         IERC20(token).transferFrom(msg.sender, address(this), amount);
         IERC20(token).approve(address(lendingPool), amount);
         lendingPool.deposit(token, amount, address(this),0);
+        totalDeposits += amount;
+        playerBalance[msg.sender] += amount;
 
     }
     
@@ -59,8 +77,8 @@ contract AaveLossless is Lossless  {
 
     }
 
-    function setMatchWinnerAndWithdrawFromPool(BetSide _winningSide) public isFinished() onlyOwner() {
-        require(_winningSide == BetSide.HOME || _winningSide == BetSide.AWAY, 'Wrong input for winner');
+    function setMatchWinnerAndWithdrawFromPool(BetSide _winningSide) public isFinished() onlyOwner() correctBet(_winningSide) {
+        require(status == MatchStatus.OPEN, 'Cant settle this match');
         status = MatchStatus.PAID;
         winningSide = _winningSide;
         lendingPool.withdraw(token, type(uint).max, address(this));
@@ -74,6 +92,8 @@ contract AaveLossless is Lossless  {
             winner = findHomeWinner();
         } else if (winningSide == BetSide.AWAY) {
             winner = findAwayWinner();
+        } else if (winningSide == BetSide.DRAW) {
+            winner = findDrawWinner();
         }
     }
 
