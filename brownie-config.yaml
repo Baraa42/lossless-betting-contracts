@@ -1,0 +1,47 @@
+dependencies:
+  - OpenZeppelin/openzeppelin-contracts@4.4.1
+  - smartcontractkit/chainlink-brownie-contracts@1.1.1
+  - aave/protocol-v2@1.0.1
+compiler:
+  solc:
+    remappings:
+      - '@openzeppelin=OpenZeppelin/openzeppelin-contracts@4.4.1'
+      - '@chainlink=smartcontractkit/chainlink-brownie-contracts@1.1.1'
+      - '@aave=aave/protocol-v2@1.0.1'
+dotenv: .env
+wallets:
+  from_key: ${PRIVATE_KEY}
+networks:
+  development:
+    keyhash: '0x2ed0feb3e7fd2022120aa84fab1945545a9f2ffc9076fd6156fa96eaff4c1311'
+    fee: 100000000000000000
+  mainnet-fork:
+    weth_token: '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2'
+    lending_pool_addresses_provider: '0xB53C1a33016B2DC2fF3653530bfF1848a515c8c5'
+    dai_eth_price_feed: '0x773616E4d11A78F511299002da57A0a94577F1f4'
+    dai_token: '0x6b175474e89094c44da98b954eedeac495271d0f'
+  kovan:
+    weth_token: '0xd0a1e359811322d97991e03f863a0c30c2cf029c'
+    lending_pool_addresses_provider: '0x88757f2f99175387ab4c6a4b3067c77a695b0349'
+    dai_eth_price_feed: '0x22B58f1EbEDfCA50feF632bD73368b2FdA96D541'
+    dai_token: '0xFf795577d9AC8bD7D90Ee22b6C1703490b6512FD'
+  rinkeby:
+    vrf_coordinator: '0xb3dCcb4Cf7a26f6cf6B120Cf5A73875B7BBc655B'
+    link_token: '0x01BE23585060835E02B77ef475b0Cc51aA1e0709'
+    keyhash: '0x2ed0feb3e7fd2022120aa84fab1945545a9f2ffc9076fd6156fa96eaff4c1311'
+    fee: 100000000000000000 # 0.1
+  avax-mainnet-fork:
+    weth_token: '0x49D5c2BdFfac6CE2BFdB6640F4F80f226bc10bAB'
+    lending_pool_addresses_provider: '0xb6A86025F0FE1862B372cb0ca18CE3EDe02A318f'
+    eth_usd_price_feed: '0x976B3D034E162d8bD72D6b9C989d545b839003b0'
+    dai_token: '0xd586E7F844cEa2F87f50152665BCbc2C279D8d70'
+    wavax_token: '0xB31f66AA3C1e785363F0875A1B74E27b85FD66c7'
+    link_token: '0x5947BB275c521040051D82396192181b413227A3'
+  avax-test:
+    weth_token: '0x9668f5f55f2712Dd2dfa316256609b516292D554'
+    lending_pool_addresses_provider: '0x7fdC1FdF79BE3309bf82f4abdAD9f111A6590C0f'
+    eth_usd_price_feed: '0x86d67c3D38D2bCeE722E601025C25a575021c6EA'
+    dai_token: '0x51BC2DfB9D12d9dB50C855A5330fBA0faF761D15'
+    wavax_token: '0xd00ae08403B9bbb9124bB305C09058E32C39A48c'
+    link_token: '0x0b9d5D9136855f6FEc3c0993feE6E9CE8a297846'
+    
