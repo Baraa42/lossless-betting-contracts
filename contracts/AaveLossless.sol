@@ -28,6 +28,8 @@ contract AaveLossless is Lossless  {
     ILendingPool public lendingPool;
     enum BetSide {OPEN, HOME, DRAW, AWAY}
     
+    event BetPlaced(address player, BetSide betside, uint256 amount);
+    event Winner(address _winner);
     
      /**
      * @dev Throws if betside is not valid
@@ -88,6 +90,7 @@ contract AaveLossless is Lossless  {
         lendingPool.deposit(token, amount, address(this),0);
         totalDeposits += amount;
         playerBalance[msg.sender] += amount;
+        emit BetPlaced(msg.sender, betSide, amount);
 
     }
     
@@ -113,6 +116,7 @@ contract AaveLossless is Lossless  {
         lendingPool.withdraw(token, type(uint).max, address(this));
         findWinner();
         payoutWinner(); 
+        emit Winner(_winner);
 
     }
 
